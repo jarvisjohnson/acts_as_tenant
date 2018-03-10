@@ -34,9 +34,9 @@ module ActsAsTenant
     # 01/27/2014 Christian Yerena / @preth00nker
     # this method adds the possibility of use the domain as a possible second argument to find
     # the current_tenant.
-    def set_current_tenant_by_subdomain_or_domain(tenant = :account, primary_column = :subdomain, second_column = :domain )
+    def set_current_tenant_by_subdomain_or_domain(tenant = :account, primary_column = :subdomain, second_column = :domain, base_domain = nil)
       self.class_eval do
-        cattr_accessor :tenant_class, :tenant_primary_column, :tenant_second_column
+        cattr_accessor :tenant_class, :tenant_primary_column, :tenant_second_column, :base_domain
       end
 
       self.tenant_class = tenant.to_s.camelcase.constantize
@@ -51,8 +51,11 @@ module ActsAsTenant
 
         private
           def find_tenant_by_subdomain_or_domain
-            if request.subdomains.last
-              ActsAsTenant.current_tenant = tenant_class.where(tenant_primary_column => request.subdomains.last.downcase).first
+            subdomains = request.subdomains.delete_if { |x| x ==  'www'}
+            if ['localhost', 'lvh.me', base_domain].include?(request.domain) && !subdomains.empty?
+              ActsAsTenant.current_tenant = tenant_class.where(tenant_primary_column => subdomains.last.downcase).first
+            elsif !subdomains.empty?
+              ActsAsTenant.current_tenant = tenant_class.where(tenant_second_column => request.server_name).first
             else
               ActsAsTenant.current_tenant = tenant_class.where(tenant_second_column => request.domain.downcase).first
             end

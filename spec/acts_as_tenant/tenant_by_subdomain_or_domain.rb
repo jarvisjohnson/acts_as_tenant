@@ -10,9 +10,9 @@ end
 
 # Start testing
 describe ApplicationController, :type => :controller do
-  controller do
+  controller(ApplicationController) do
     def index
-      render :text => "custom called"
+      head :ok
     end
   end
 
@@ -23,22 +23,29 @@ describe ApplicationController, :type => :controller do
     expect(ActsAsTenant.current_tenant).to eq 'account1'
   end
 
-  it 'Finds the correct tenant with a subdomain.example.com' do
+  it 'Finds the correct tenant with a subdomain.shyftly.com' do
     @request.host = "subdomain.example.com"
     expect(Account).to receive(:where).with({subdomain: 'subdomain'}) {['account1']}
     get :index
     expect(ActsAsTenant.current_tenant).to eq "account1"
   end
 
-  it 'Finds the correct tenant with a www.subdomain.example.com' do
+  it 'Finds the correct tenant with a www.subdomain.shyftly.com' do
     @request.host = "subdomain.example.com"
     expect(Account).to receive(:where).with({subdomain: 'subdomain'}) {['account1']}
     get :index
     expect(ActsAsTenant.current_tenant).to eq "account1"
+  end
+
+  it 'Finds the correct tenant with a www.volunteers.this-that.com' do
+    @request.host = "subdomain.example.com"
+    expect(Account).to receive(:where).with({domain: 'volunteers.this-that'}) {['account2']}
+    get :index
+    expect(ActsAsTenant.current_tenant).to eq "account2"
   end
 
   it 'Ignores case when finding tenant by subdomain' do
-    @request.host = "SubDomain.example.com"
+    @request.host = "SubDomain.shyftly.com"
     expect(Account).to receive(:where).with({subdomain: 'subdomain'}) {['account1']}
     get :index
     expect(ActsAsTenant.current_tenant).to eq "account1"
